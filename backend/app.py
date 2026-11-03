@@ -4,7 +4,7 @@ import streamlit as st
 from PIL import Image, UnidentifiedImageError
 
 from api.database import get_db_connection
-from backend.api.model_service import (
+from api.model_service import (
     MODEL_NAME,
     MODEL_VERSION,
     predict_image,
