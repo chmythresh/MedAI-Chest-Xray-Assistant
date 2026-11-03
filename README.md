@@ -19,23 +19,6 @@ The live application provides:
 - Confidence scores
 - Model information
 
-## 📸 Screenshots
-
-### 1. Streamlit Application
-
-![MedAI Streamlit Application](<img width="1917" height="821" alt="Screenshot 2026-11-03 153441" src="https://github.com/user-attachments/assets/c3f87c4a-b0b4-4503-99dd-a32bd1986d5c" />
-)
-
-### 2. Chest X-ray Upload
-
-![Chest X-ray Upload](<img width="1420" height="1108" alt="Clear Frontal Chest X-ray" src="https://github.com/user-attachments/assets/381ff8e3-0526-405f-9f3d-15aa30dba88a" />
-)
-
-### 3. Prediction Result
-
-![Prediction Result](<img width="1250" height="402" alt="Screenshot 2026-11-03 153502" src="https://github.com/user-attachments/assets/8e22feaa-21f4-4e45-9d78-103ec93a4da1" />
-)
-
 ## 🧠 Machine Learning Model
 
 The project uses a **fine-tuned ResNet18** model for experimental chest X-ray classification.
