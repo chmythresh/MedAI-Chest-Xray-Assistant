@@ -1,6 +1,8 @@
+
 from io import BytesIO
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image, UnidentifiedImageError
 
 from backend.api.database import get_db_connection
@@ -19,12 +21,32 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# Allow the React frontend to communicate with this backend.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+    ],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+
+
+@app.get("/")
+def home():
+    return {
+        "message": "Medical Image Diagnostic Assistant API is running",
+        "docs": "/docs",
+        "health": "/health",
+    }
 
 
 @app.get("/health")
 def health_check():
-    """Check whether the API and database are accessible."""
     return {
         "status": "healthy",
         "model": MODEL_NAME,
@@ -34,7 +56,6 @@ def health_check():
 
 @app.get("/model-info")
 def model_info():
-    """Return model information and intended use."""
     return {
         "model_name": MODEL_NAME,
         "model_version": MODEL_VERSION,
@@ -52,7 +73,6 @@ def model_info():
 
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
-    """Classify an uploaded image and save its result to MySQL."""
     if file.content_type not in ("image/jpeg", "image/png"):
         raise HTTPException(
             status_code=415,
@@ -95,9 +115,11 @@ async def predict(file: UploadFile = File(...)):
         )
 
     connection = None
+
     try:
         predicted_class = str(result["predicted_class"]).lower()
         scores = result["class_scores"]
+
         normal_score = float(scores["normal"])
         abnormal_score = float(scores["abnormal"])
 
@@ -111,8 +133,10 @@ async def predict(file: UploadFile = File(...)):
             raise ValueError("Class scores must be between 0 and 1.")
 
         connection = get_db_connection()
+
         try:
             cursor = connection.cursor()
+
             try:
                 cursor.execute(
                     """
@@ -135,10 +159,13 @@ async def predict(file: UploadFile = File(...)):
                         MODEL_VERSION,
                     ),
                 )
+
                 connection.commit()
                 result["history_id"] = cursor.lastrowid
+
             finally:
                 cursor.close()
+
         finally:
             connection.close()
 
@@ -148,6 +175,7 @@ async def predict(file: UploadFile = File(...)):
                 connection.rollback()
             except Exception:
                 pass
+
         raise HTTPException(
             status_code=503,
             detail=(
@@ -158,9 +186,9 @@ async def predict(file: UploadFile = File(...)):
 
     return result
 
+
 @app.get("/history")
 def prediction_history(limit: int = 20):
-    """Return recent prediction records without storing image files."""
     if limit < 1 or limit > 100:
         raise HTTPException(
             status_code=400,
@@ -168,9 +196,11 @@ def prediction_history(limit: int = 20):
         )
 
     connection = None
+
     try:
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
+
         try:
             cursor.execute(
                 """
@@ -183,18 +213,29 @@ def prediction_history(limit: int = 20):
                 """,
                 (limit,),
             )
+
             records = cursor.fetchall()
+
             for record in records:
                 if record["created_at"] is not None:
-                    record["created_at"] = record["created_at"].isoformat()
-            return {"count": len(records), "records": records}
+                    record["created_at"] = (
+                        record["created_at"].isoformat()
+                    )
+
+            return {
+                "count": len(records),
+                "records": records,
+            }
+
         finally:
             cursor.close()
+
     except Exception:
         raise HTTPException(
             status_code=503,
             detail="Could not retrieve prediction history.",
         )
+
     finally:
         if connection is not None and connection.is_connected():
             connection.close()
